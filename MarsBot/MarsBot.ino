@@ -1,4 +1,5 @@
 #include "wifi.h"
+#include <AFMotor.h>
 
 //Ultrasonic sensor
 int trigPin = A1;            //the used trig pin
@@ -29,11 +30,8 @@ int maxInstructions = 25;
 int instructions[25] = {2,4,2,3,2,3,2,2,2,3,2,2,1,2,2,4,2,2,2,4,2,4,2,3,2};
 
 //Car controls
-int rightSpeed = 3; 
-int leftSpeed = 11;
-
-int rightDir = 12;
-int leftDir = 13;
+AF_DCMotor motor1(1, MOTOR12_8KHZ);
+AF_DCMotor motor2(2, MOTOR12_8KHZ);
 
 boolean isActive = true;
 boolean isPaused = false;
@@ -86,7 +84,9 @@ void setup() {
 
   clearRegister();
   */
-  
+
+  motor1.run(RELEASE);  
+  motor2.run(RELEASE);  
         
 }
 
@@ -96,8 +96,8 @@ void loop() {
   if (isActive) {
     activeState();
   } else {
-    analogWrite(rightSpeed, 0);
-    analogWrite(leftSpeed, 0);
+    motor1.run(RELEASE);
+    motor2.run(RELEASE);
   }  
 }
 
@@ -113,7 +113,6 @@ void activeState() {
       delay(100);
     }
     Serial.println("Full stop");
-    redLEDOn();
     isActive = false;
 }
 
@@ -262,10 +261,10 @@ void forward() {
 }
 
 void stopEngines() {
-  digitalWrite(rightDir, HIGH);
-  digitalWrite(leftDir, HIGH);
-  analogWrite(rightSpeed, 0);
-  analogWrite(leftSpeed, 0);
+  motor1.setSpeed(0);
+  motor2.setSpeed(0);
+  motor1.run(FORWARD);
+  motor2.run(FORWARD);
 }
 
 void thrust(int leftWheel, int rightWheel) {
@@ -276,11 +275,11 @@ void thrust(int leftWheel, int rightWheel) {
       forwardLEDOn(); 
     }
   //Set the wheels direction -> Forward
-  digitalWrite(rightDir, HIGH);
-  digitalWrite(leftDir, HIGH);
+  motor1.run(FORWARD);
+  motor2.run(FORWARD);
   //Set the speed of both wheels corresponding to the two arguments
-  analogWrite(rightSpeed, rightWheel);
-  analogWrite(leftSpeed, leftWheel);  
+  motor1.setSpeed(rightWheel);
+  motor2.setSpeed(rightWheel);
 }
 
 void leftDirection(){
@@ -289,9 +288,9 @@ void leftDirection(){
       yellowOn = false;
       leftLEDOn(); 
     }
-  digitalWrite(rightDir, HIGH);
-  analogWrite(rightSpeed, standardSpeedRight);
-  digitalWrite(leftSpeed, LOW);
+  motor1.run(FORWARD);
+  motor1.setSpeed(standardSpeedRight);
+  motor2.run(BACKWARD);
 }
 
 void rightDirection(){
@@ -300,9 +299,9 @@ void rightDirection(){
       yellowOn = false;
       rightLEDOn(); 
     }
-  digitalWrite(leftDir, HIGH);
-  analogWrite(leftSpeed, standardSpeedLeft);
-  digitalWrite(rightSpeed, LOW);
+  motor2.run(FORWARD);
+  motor2.setSpeed(standardSpeedLeft);
+  motor1.run(BACKWARD);
 }
 
 void leftTurn() {
@@ -326,9 +325,9 @@ void leftTurn() {
     }
   }
   //When turnSensor is white again, stop
-  analogWrite(rightSpeed,0);
-  digitalWrite(rightDir,HIGH);
-  digitalWrite(leftDir,HIGH);
+  motor1.setSpeed(0);
+  motor1.run(FORWARD);
+  motor2.run(FORWARD);
 }
 
 void rightTurn() {
@@ -362,9 +361,7 @@ void rightTurn() {
     }
   }
   //When turnSensor is white again, stop
-  analogWrite(leftSpeed,0);
-  digitalWrite(rightDir,HIGH);
-  digitalWrite(leftDir,HIGH);
+  stopEngines();
 }
 
 void uTurnDirection(){
@@ -373,10 +370,11 @@ void uTurnDirection(){
       yellowOn = false;
       uTurnLEDOn(); 
     }
-  digitalWrite(rightDir, HIGH);
-  digitalWrite(leftDir, LOW);
-  analogWrite(rightSpeed, standardSpeedRight);
-  analogWrite(leftSpeed, standardSpeedLeft);
+
+  motor1.run(FORWARD);
+  motor2.run(BACKWARD);
+  motor1.setSpeed(standardSpeedRight);
+  motor2.setSpeed(standardSpeedLeft);
 }
 
 void uTurn() {
@@ -418,10 +416,7 @@ void uTurn() {
     }
   }
   //When turnSensor is white again, stop
-  analogWrite(rightSpeed,0);
-  analogWrite(leftSpeed,0);
-  digitalWrite(rightDir,HIGH);
-  digitalWrite(leftDir,HIGH);
+  stopEngines();
 }
 
 void changeMultiplexChannel(int c_val, int b_val, int a_val) {
