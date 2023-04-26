@@ -1,5 +1,5 @@
 #include "wifi.h"
-#include <AFMotor.h>
+#include <MotorDriver.h>
 
 //Ultrasonic sensor
 int trigPin = A1;            //the used trig pin
@@ -7,31 +7,17 @@ int echoPin = A5;            //the used echo pin
 int distance;               //to store the value
 
 //IR Sensors
-int leftSens = A3;
+int leftSens = A0;
 int turnSens = A2;
-int rightSens = A4;
+int rightSens = A1;
 
-//Multiplex ports
-int a = 10;
-int b = 7;
-int c = 4;
-int com = 9;
-
-//ShiftRegister Pins
-int latchPin = A0; //ST_CP or RCLK ()
-int clockPin = 2; //SH_CP or SRCLK ()
-int dataPin = 5; //DS or SER ()
-int clearPin = 3; //MR or SRCLR (Blue)
-
-int lightState = 0;
 
 //Instructions
 int maxInstructions = 25;
 int instructions[25] = {2,4,2,3,2,3,2,2,2,3,2,2,1,2,2,4,2,2,2,4,2,4,2,3,2};
 
 //Car controls
-AF_DCMotor motor1(1, MOTOR12_8KHZ);
-AF_DCMotor motor2(2, MOTOR12_8KHZ);
+MotorDriver m;
 
 boolean isActive = true;
 boolean isPaused = false;
@@ -42,7 +28,7 @@ int standardSpeedLeft = 150;
 int turningSpeed = 150;
 int correctionSpeed = 0;
 
-int lightLimit = 700;
+int lightLimit = -700;
 
 boolean yellowOn = false;
 
@@ -85,27 +71,24 @@ void setup() {
   clearRegister();
   */
 
-  motor1.run(RELEASE);  
-  motor2.run(RELEASE);  
+  m.motor(1,RELEASE,0);  
+  m.motor(2,RELEASE,0);  
         
 }
 
 void loop() {
   
-  checkStart();
+
   if (isActive) {
     activeState();
   } else {
-    motor1.run(RELEASE);
-    motor2.run(RELEASE);
+    stopEngines();
   }  
 }
 
 void activeState() {
   while (isActive) {
-      //sendUDPMessage(serverIPAddress, serverPort, String(42));
       int message = listenForUDPMessage();
-
       
       if (message != NULL) {
         runInstruction(message);
@@ -116,43 +99,24 @@ void activeState() {
     isActive = false;
 }
 
-void pauseState() {
-  yellowLEDOn();
-  stopEngines();
-  while (true) {
-    changeMultiplexChannel(HIGH, LOW, LOW);
-    if (digitalRead(com)) {
-      delay(300);
-      break;
-    }
-
-    changeMultiplexChannel(HIGH, HIGH, HIGH);
-    if (digitalRead(com)) {
-      delay(300);
-      isStopped = true;
-      break;
-    }
-  }
-  greenLEDOn();
-}
 
 void runInstruction(int instruction){
   switch (instruction) {
     case 1:
       Serial.println("U-Turn");
-      //uTurn();
+      uTurn();
       break;
     case 2:
       Serial.println("Forward");
-      //forward();
+      forward();
       break;
     case 3:
       Serial.println("Left");
-      //leftTurn();
+      leftTurn();
       break;
     case 4:
       Serial.println("Right");
-      //rightTurn();
+      rightTurn();
       break;
   }
 }
@@ -170,48 +134,8 @@ int getDistance() {
   return pulseIn(echoPin, HIGH) * 0.034 / 2;
 }
 
-void obstacleCheck(){
-  yellowOn = false;
-  distance = getDistance();
-  while(distance <= 30){
-    distance = getDistance();
-    //Stops robot activity
-    stopEngines();
-    if (!yellowOn) {
-      yellowOn = true;
-      yellowLEDOn(); 
-    }
-  } 
-  
-}
-
-void checkStart() {
-
-  //Start
-  changeMultiplexChannel(HIGH, LOW, LOW);
-  if (digitalRead(com)) {
-    delay(300);
-    isActive = true;
-  }
-}
-
-void checkStopPause() {
-  //Stop
-  changeMultiplexChannel(HIGH, HIGH, HIGH);
-  if (digitalRead(com)) {
-    delay(300);
-    isStopped = true;
-  }
-  //Pause
-  changeMultiplexChannel(HIGH, LOW, LOW);
-  if (digitalRead(com)) {
-    delay(300);
-    pauseState();
-  }
-}
 
 void forward() {
-  forwardLEDOn();
   while(analogRead(leftSens) > lightLimit && analogRead(rightSens) > lightLimit){
     thrust(standardSpeedLeft, standardSpeedRight);
   }
@@ -219,14 +143,12 @@ void forward() {
   //While we are not at an intersection...
   while(analogRead(leftSens) < lightLimit || analogRead(rightSens) < lightLimit){
     //Left and right sensors are white
-    checkStopPause();
     if(isStopped){
       break;
     }
     
     while (analogRead(leftSens) < lightLimit && analogRead(rightSens) < lightLimit) {
       Serial.println("Straight");
-      checkStopPause();
       if(!isStopped){
         thrust(standardSpeedLeft, standardSpeedRight);
       }else{
@@ -237,7 +159,6 @@ void forward() {
     //Left is black -> Correct torwards the left by speeding up on right wheel
     while (analogRead(leftSens) > lightLimit && analogRead(rightSens) < lightLimit ) {
       Serial.println("Right");
-      checkStopPause();
       if(!isStopped){
         thrust(correctionSpeed, standardSpeedLeft);
       }else{
@@ -248,7 +169,6 @@ void forward() {
     //Right is black -> Correct torwards the right by speeding up on left wheel
     while (analogRead(leftSens) < lightLimit && analogRead(rightSens) > lightLimit) {
       Serial.println("Left");
-      checkStopPause();
       if(!isStopped){
         thrust(standardSpeedLeft, correctionSpeed);
       }else{
@@ -261,54 +181,35 @@ void forward() {
 }
 
 void stopEngines() {
-  motor1.setSpeed(0);
-  motor2.setSpeed(0);
-  motor1.run(FORWARD);
-  motor2.run(FORWARD);
+  m.motor(1,RELEASE,0);
+  m.motor(2,RELEASE,0);
+  m.motor(1,FORWARD,0);
+  m.motor(2,FORWARD,0);
 }
 
 void thrust(int leftWheel, int rightWheel) {
 
-  obstacleCheck();
-  if (yellowOn) {
-      yellowOn = false;
-      forwardLEDOn(); 
-    }
   //Set the wheels direction -> Forward
-  motor1.run(FORWARD);
-  motor2.run(FORWARD);
   //Set the speed of both wheels corresponding to the two arguments
-  motor1.setSpeed(rightWheel);
-  motor2.setSpeed(rightWheel);
+  m.motor(1,FORWARD,rightWheel);
+  m.motor(2,FORWARD,leftWheel);
+  
 }
 
 void leftDirection(){
-  obstacleCheck();
-  if (yellowOn) {
-      yellowOn = false;
-      leftLEDOn(); 
-    }
-  motor1.run(FORWARD);
-  motor1.setSpeed(standardSpeedRight);
-  motor2.run(BACKWARD);
+  m.motor(1,FORWARD,standardSpeedRight);
+  m.motor(2,BACKWARD,standardSpeedLeft);
 }
 
 void rightDirection(){
-  obstacleCheck();
-  if (yellowOn) {
-      yellowOn = false;
-      rightLEDOn(); 
-    }
-  motor2.run(FORWARD);
-  motor2.setSpeed(standardSpeedLeft);
-  motor1.run(BACKWARD);
+  m.motor(2,FORWARD,standardSpeedLeft);
+  m.motor(1,BACKWARD,standardSpeedRight);
 }
 
 void leftTurn() {
-  leftLEDOn();
   //Turn left while turnSensor is white
   while(analogRead(turnSens) < lightLimit){
-    checkStopPause();
+
     if(!isStopped){
       leftDirection(); 
     }else{
@@ -317,7 +218,7 @@ void leftTurn() {
   }
   //Keep turning while black
   while(analogRead(turnSens) > lightLimit){
-    checkStopPause();
+
     if(!isStopped){
       leftDirection();
     }else{
@@ -325,16 +226,16 @@ void leftTurn() {
     }
   }
   //When turnSensor is white again, stop
-  motor1.setSpeed(0);
-  motor1.run(FORWARD);
-  motor2.run(FORWARD);
+  m.motor(1,RELEASE,0);
+  m.motor(1,FORWARD,0);
+  m.motor(2,FORWARD,0);
 }
 
 void rightTurn() {
-  rightLEDOn();
+
   //Turn right while turnSensor is white
   while(analogRead(turnSens) < lightLimit){
-    checkStopPause();
+
     if(!isStopped){
       rightDirection();
     }else{
@@ -344,7 +245,7 @@ void rightTurn() {
   //Keep turning while black
   while(analogRead(turnSens) > lightLimit){
     delay(100);
-    checkStopPause();
+
     if(!isStopped){
       rightDirection();
     }else{
@@ -353,7 +254,7 @@ void rightTurn() {
   }
   //Keep turning while sensor is, again, white
   while(analogRead(turnSens) < lightLimit){
-    checkStopPause();
+
     if(isStopped){
       rightDirection();
     }else{
@@ -365,23 +266,15 @@ void rightTurn() {
 }
 
 void uTurnDirection(){
-  obstacleCheck();
-  if (yellowOn) {
-      yellowOn = false;
-      uTurnLEDOn(); 
-    }
 
-  motor1.run(FORWARD);
-  motor2.run(BACKWARD);
-  motor1.setSpeed(standardSpeedRight);
-  motor2.setSpeed(standardSpeedLeft);
+  m.motor(1,FORWARD,standardSpeedRight);
+  m.motor(2,BACKWARD,standardSpeedLeft);
 }
 
 void uTurn() {
-  uTurnLEDOn();
+
   //Turn left while white
   while(analogRead(turnSens) < lightLimit){
-    checkStopPause();
     if(!isStopped){
       uTurnDirection();
     }else{
@@ -390,7 +283,6 @@ void uTurn() {
   }
   //Keep turning while black
   while(analogRead(turnSens) > lightLimit){
-    checkStopPause();
     if(!isStopped){
       uTurnDirection();
     }else{
@@ -399,7 +291,6 @@ void uTurn() {
   }
   //Keep keep turning while white
   while(analogRead(turnSens) < lightLimit){
-    checkStopPause();
     if(!isStopped){
       uTurnDirection();
     }else{
@@ -408,7 +299,6 @@ void uTurn() {
   }
   //Keep turning while black
   while(analogRead(turnSens) > lightLimit){
-    checkStopPause();
     if(!isStopped){
       uTurnDirection();
     }else{
@@ -419,11 +309,6 @@ void uTurn() {
   stopEngines();
 }
 
-void changeMultiplexChannel(int c_val, int b_val, int a_val) {
-    digitalWrite(a, a_val);
-    digitalWrite(b, b_val);
-    digitalWrite(c, c_val);
-}
 
 void printSensor(){
   Serial.print("Left:");
@@ -433,198 +318,6 @@ void printSensor(){
   Serial.print("Turn:");
   Serial.println(analogRead(turnSens));
   delay(2000);
-}
-
-void greenLEDOn() {
-  clearRegister();
-
-  digitalWrite(clearPin, HIGH);
-  digitalWrite(clearPin, LOW);
-  digitalWrite(clearPin, HIGH);
-
-  latchToggle();
-
-  delay(100);
-  
-  digitalWrite(dataPin, HIGH);
-  clockToggle();
-  digitalWrite(dataPin, LOW);
-  clockToggle();
-  clockToggle();
-  clockToggle();
-  latchToggle();
-}
-
-void yellowLEDOn() {
-  clearRegister();
-
-  digitalWrite(clearPin, HIGH);
-  digitalWrite(clearPin, LOW);
-  digitalWrite(clearPin, HIGH);
-
-  latchToggle();
-
-  delay(100);
-  
-  digitalWrite(dataPin, HIGH);
-  clockToggle();
-  digitalWrite(dataPin, LOW);
-  clockToggle();
-  clockToggle();
-  latchToggle();
-}
-
-void clearRegister() {
-  //Clears the 8-bit register
-  digitalWrite(clearPin, HIGH);
-  digitalWrite(clearPin, LOW);
-  digitalWrite(clearPin, HIGH);
-
-  //Commits the empty register
-  digitalWrite(latchPin, HIGH);
-  digitalWrite(latchPin, LOW);
-  digitalWrite(latchPin, HIGH);
-}
-
-void forwardLEDOn(){
-  clearRegister();
-  
-  digitalWrite(clearPin, HIGH);
-  digitalWrite(clearPin, LOW);
-  digitalWrite(clearPin, HIGH);
-
-  latchToggle();
-
-  delay(100);
-
-  digitalWrite(dataPin, HIGH);
-  clockToggle();
-  digitalWrite(dataPin, LOW);
-  digitalWrite(dataPin, HIGH);
-  clockToggle();
-  digitalWrite(dataPin, LOW);
-  clockToggle();
-  clockToggle();
-  clockToggle();
-  
-  latchToggle();
-
-}
-
-void uTurnLEDOn(){
-  clearRegister();
-
-  digitalWrite(clearPin, HIGH);
-  digitalWrite(clearPin, LOW);
-  digitalWrite(clearPin, HIGH);
-
-  latchToggle();
-
-  delay(100);
-
-  digitalWrite(dataPin, HIGH);
-  clockToggle();
-  digitalWrite(dataPin, LOW);
-
-  clockToggle();
-  clockToggle();
-  clockToggle();
-
-  digitalWrite(dataPin, HIGH);
-  clockToggle();
-  digitalWrite(dataPin, LOW);
-
-  clockToggle();
-  clockToggle();
-  clockToggle();
-  
-  latchToggle();
-}
-
-void leftLEDOn(){
-  clearRegister();
-
-  digitalWrite(clearPin, HIGH);
-  digitalWrite(clearPin, LOW);
-  digitalWrite(clearPin, HIGH);
-
-  latchToggle();
-
-  delay(100);
-
-  digitalWrite(dataPin, HIGH);
-  clockToggle();
-  digitalWrite(dataPin, LOW);
-
-  clockToggle();
-  clockToggle();
-
-  digitalWrite(dataPin, HIGH);
-  clockToggle();
-  digitalWrite(dataPin, LOW);
-
-  clockToggle();
-  clockToggle();
-  clockToggle();
-  
-  latchToggle();
-}
-
-void rightLEDOn(){
-  clearRegister();
-
-  digitalWrite(clearPin, HIGH);
-  digitalWrite(clearPin, LOW);
-  digitalWrite(clearPin, HIGH);
-
-  latchToggle();
-
-  delay(100);
-
-  digitalWrite(dataPin, HIGH);
-  clockToggle();
-  digitalWrite(dataPin, LOW);
-
-  clockToggle();
-
-  digitalWrite(dataPin, HIGH);
-  clockToggle();
-  digitalWrite(dataPin, LOW);
-
-  clockToggle();
-  clockToggle();
-  clockToggle();
-  
-  latchToggle();
-}
-
-void redLEDOn() {
-  clearRegister();
-
-  digitalWrite(clearPin, HIGH);
-  digitalWrite(clearPin, LOW);
-  digitalWrite(clearPin, HIGH);
-
-  latchToggle();
-
-  delay(100);
-  
-  digitalWrite(dataPin, HIGH);
-  clockToggle();
-  digitalWrite(dataPin, LOW);
-  clockToggle();
-  latchToggle();
-}
-
-//Shift register and LED methods
-void latchToggle() {
-  digitalWrite(latchPin, HIGH);
-  digitalWrite(latchPin, LOW);
-}
-
-void clockToggle() {
-  digitalWrite(clockPin, HIGH);
-  digitalWrite(clockPin, LOW);
 }
 
 void customDelay(unsigned long delayTime) {
