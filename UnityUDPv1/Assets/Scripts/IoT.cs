@@ -17,12 +17,12 @@ public class IoT : MonoBehaviour
         if (runLocal)
         {
             Debug.Log("Connect to Local Server");
-            socket = SocketIo.establishSocketConnection("ws://localhost:8080");
+            socket = SocketIo.establishSocketConnection("ws://localhost:3000");
         }
         else
         {
             Debug.Log("Connect to Online Server");
-            socket = SocketIo.establishSocketConnection("http://34.88.23.81:8080/");
+            socket = SocketIo.establishSocketConnection("ws://sdu-e22-iot-v1.eu-4.evennode.com");
         }
 
         //Connect to server
