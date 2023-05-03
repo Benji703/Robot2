@@ -31,6 +31,7 @@ int correctionSpeed = 0;
 int lightLimit = -700;
 
 boolean yellowOn = false;
+boolean isReady = false;
 
 void setup() {
   
@@ -80,6 +81,7 @@ void loop() {
   
 
   if (isActive) {
+    isReady = true;
     activeState();
   } else {
     stopEngines();
@@ -91,6 +93,7 @@ void activeState() {
       int message = listenForUDPMessage();
       
       if (message != NULL) {
+        isReady = false;
         runInstruction(message);
       }
       delay(100);
@@ -119,6 +122,8 @@ void runInstruction(int instruction){
       rightTurn();
       break;
   }
+
+  isReady = true;
 }
 
 //function - returns the distance
