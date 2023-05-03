@@ -1,25 +1,19 @@
 #include "wifi.h"
 #include <MotorDriver.h>
 
-//Ultrasonic sensor
-int trigPin = A1;            //the used trig pin
-int echoPin = A5;            //the used echo pin
-int distance;               //to store the value
-
 //IR Sensors
 int leftSens = A0;
 int turnSens = A2;
 int rightSens = A1;
 
-int rightMotor = 3;
-int leftMotor = 4;
 
-//Instructions
-int maxInstructions = 25;
-int instructions[25] = {2,4,2,3,2,3,2,2,2,3,2,2,1,2,2,4,2,2,2,4,2,4,2,3,2};
+
 
 //Car controls
 MotorDriver m;
+
+int rightMotor = 3;
+int leftMotor = 4;
 
 boolean isActive = true;
 boolean isPaused = false;
@@ -44,39 +38,12 @@ void setup() {
   //Notify server that device is online
   sendUDPMessage(serverIPAddress, serverPort, "0");
 
-  
-  //pinMode(trigPin, OUTPUT); //sets pin as OUTPUT
-  //pinMode(echoPin, INPUT);  //sets pin as INPUT
-
   pinMode(leftSens, INPUT);
   pinMode(rightSens, INPUT);
   pinMode(turnSens, INPUT);
 
-  /* For Multiplexer
-  pinMode(a, OUTPUT);
-  pinMode(b, OUTPUT);
-  pinMode(c, OUTPUT);
-  pinMode(com, INPUT_PULLUP);
-  */
-  
-  //Set pins to output so you can control the shift register
-  /*
-  pinMode(latchPin, OUTPUT);
-  pinMode(clockPin, OUTPUT);
-  pinMode(dataPin, OUTPUT);
-  pinMode(clearPin, OUTPUT);
-
-  digitalWrite(clearPin, HIGH);
-  digitalWrite(latchPin, LOW);
-  digitalWrite(clockPin, LOW);
-  digitalWrite(dataPin, LOW);
-
-  clearRegister();
-  */
-
   m.motor(rightMotor,RELEASE,0);  
   m.motor(leftMotor,RELEASE,0);  
-        
 }
 
 void loop() {
@@ -131,18 +98,6 @@ void runInstruction(int instruction){
   sendUDPMessage(serverIPAddress, serverPort, "1");
 }
 
-//function - returns the distance
-int getDistance() {
-  //sends out a trigger sound
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-
-  //returns the received echo in centimeter
-  return pulseIn(echoPin, HIGH) * 0.034 / 2;
-}
 
 
 void forward() {
