@@ -9,8 +9,11 @@
 <body>
 	<!--Current LED and Potentiometer values, and set new LED value-->
 	<p>
-		Current LED value (<output name="" type="text" id="CurrentLEDValueField" value"readonly"></output>), new LED value:
-		<input id="newLEDValueField" type="text" onchange="UpdateLEDValue(this.value);">
+		Current direction (<output name="" type="text" id="CurrentLEDValueField" value"readonly"></output>), set new direction:
+		<button onclick="SendDirValue(this.value)" value="2">Forward</button>
+		<button onclick="SendDirValue(this.value)" value="3">Left</button>
+		<button onclick="SendDirValue(this.value)" value="4">Right</button>
+		<button onclick="SendDirValue(this.value)" value="1">U-turn</button>
 	</p>
 
 	<p>
@@ -59,4 +62,10 @@
 		console.log("New LED value emitted to server: " + newLEDValue);
         socket.emit("UpdateCurrentLEDValue", newLEDValue);
 	}
+
+	function SendDirValue(newDirection) {
+		console.log("New direction value send: " + newDirection);
+        socket.emit("UpdateCurrentLEDValue", newDirection);
+	}
+
 </script>
