@@ -8,6 +8,7 @@ app.use(express.static(path.join(__dirname, '')));
 //server variables
 var currentPotValue = 0;
 var currentLEDValue = 0;
+var currentReadyValue = 0;
 
 //start server
 server.listen(8080, function () {
@@ -70,12 +71,12 @@ UDPsocket.on('message', (msg, senderInfo) => {
     console.log("From addr: " + senderInfo.address + ", at port: " + senderInfo.port + "\n");
 
     //Save potentiometer value and turn it into a string (before this, it is a buffer)
-    currentPotValue = msg.toString();
+    currentReadyValue = msg.toString();
 
     arduinoIPAddress = senderInfo.address;
     arduinoPort = senderInfo.port;
 
-    EmitPotValue();
+    EmitReadyValue();
 
     //send acknowledgement message
     //sendUDPMessage(arduinoIPAddress, arduinoPort, "SERVER: The message was received");
@@ -113,7 +114,7 @@ io.on('connection', function(IOsocket) {
         console.log("Current LED Value received from client: " + data + "\n");
         currentLEDValue = data;
 
-        io.emit('CurrentLEDValue', currentLEDValue);
+        io.emit('Current    LEDValue', currentLEDValue);
 
         //If arduino, send LED value with UDP
         if (arduinoIPAddress != null && arduinoPort != null) {
@@ -125,4 +126,8 @@ io.on('connection', function(IOsocket) {
 //emit "CurrentPotentiometerValue"
 function EmitPotValue() {
     io.emit('CurrentPotentiometerValue', currentPotValue);
+}
+
+function EmitReadyValue() {
+    io.emit('CurrentReadyValue', currentReadyValue);
 }
