@@ -11,6 +11,8 @@ int leftSens = A0;
 int turnSens = A2;
 int rightSens = A1;
 
+int rightMotor = 3;
+int leftMotor = 4;
 
 //Instructions
 int maxInstructions = 25;
@@ -28,6 +30,7 @@ int standardSpeedLeft = 150;
 int turningSpeed = 150;
 int correctionSpeed = 0;
 
+//Change to positive value when using line sensors
 int lightLimit = -700;
 
 boolean yellowOn = false;
@@ -71,8 +74,8 @@ void setup() {
   clearRegister();
   */
 
-  m.motor(1,RELEASE,0);  
-  m.motor(2,RELEASE,0);  
+  m.motor(rightMotor,RELEASE,0);  
+  m.motor(leftMotor,RELEASE,0);  
         
 }
 
@@ -188,29 +191,29 @@ void forward() {
 }
 
 void stopEngines() {
-  m.motor(1,RELEASE,0);
-  m.motor(2,RELEASE,0);
-  m.motor(1,FORWARD,0);
-  m.motor(2,FORWARD,0);
+  m.motor(rightMotor,RELEASE,0);
+  m.motor(leftMotor,RELEASE,0);
+  m.motor(rightMotor,FORWARD,0);
+  m.motor(leftMotor,FORWARD,0);
 }
 
 void thrust(int leftWheel, int rightWheel) {
 
   //Set the wheels direction -> Forward
   //Set the speed of both wheels corresponding to the two arguments
-  m.motor(1,FORWARD,rightWheel);
-  m.motor(2,FORWARD,leftWheel);
+  m.motor(rightMotor,FORWARD,rightWheel);
+  m.motor(leftMotor,FORWARD,leftWheel);
   
 }
 
 void leftDirection(){
-  m.motor(1,FORWARD,standardSpeedRight);
-  m.motor(2,BACKWARD,standardSpeedLeft);
+  m.motor(rightMotor,FORWARD,standardSpeedRight);
+  m.motor(leftMotor,BACKWARD,standardSpeedLeft);
 }
 
 void rightDirection(){
-  m.motor(2,FORWARD,standardSpeedLeft);
-  m.motor(1,BACKWARD,standardSpeedRight);
+  m.motor(leftMotor,FORWARD,standardSpeedLeft);
+  m.motor(rightMotor,BACKWARD,standardSpeedRight);
 }
 
 void leftTurn() {
@@ -233,9 +236,9 @@ void leftTurn() {
     }
   }
   //When turnSensor is white again, stop
-  m.motor(1,RELEASE,0);
-  m.motor(1,FORWARD,0);
-  m.motor(2,FORWARD,0);
+  m.motor(rightMotor,RELEASE,0);
+  m.motor(rightMotor,FORWARD,0);
+  m.motor(leftMotor,FORWARD,0);
 }
 
 void rightTurn() {
@@ -274,8 +277,8 @@ void rightTurn() {
 
 void uTurnDirection(){
 
-  m.motor(1,FORWARD,standardSpeedRight);
-  m.motor(2,BACKWARD,standardSpeedLeft);
+  m.motor(rightMotor,FORWARD,standardSpeedRight);
+  m.motor(leftMotor,BACKWARD,standardSpeedLeft);
 }
 
 void uTurn() {
