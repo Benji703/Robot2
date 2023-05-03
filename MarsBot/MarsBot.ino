@@ -31,7 +31,6 @@ int correctionSpeed = 0;
 int lightLimit = -700;
 
 boolean yellowOn = false;
-boolean isReady = false;
 
 void setup() {
   
@@ -81,7 +80,8 @@ void loop() {
   
 
   if (isActive) {
-    isReady = true;
+    //Send isReady message to server
+    sendUDPMessage(serverIPAddress, serverPort, "1");
     activeState();
   } else {
     stopEngines();
@@ -93,7 +93,8 @@ void activeState() {
       int message = listenForUDPMessage();
       
       if (message != NULL) {
-        isReady = false;
+        //Send isNotReady message to server
+        sendUDPMessage(serverIPAddress, serverPort, "0");
         runInstruction(message);
       }
       delay(100);
@@ -123,7 +124,8 @@ void runInstruction(int instruction){
       break;
   }
 
-  isReady = true;
+  //Send isReady message to server
+  sendUDPMessage(serverIPAddress, serverPort, "1");
 }
 
 //function - returns the distance
