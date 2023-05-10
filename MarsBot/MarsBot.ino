@@ -49,7 +49,7 @@ void loop() {
 
   if (isActive) {
     //Send isReady message to server
-    sendUDPMessage(serverIPAddress, serverPort, "1");
+    //sendUDPMessage(serverIPAddress, serverPort, "1");
     activeState();
   } else {
     stopEngines();
@@ -58,18 +58,16 @@ void loop() {
 
 void activeState() {
   while (isActive) {
-      Serial.print("Left: ");
-      Serial.println(analogRead(leftSens));
-      Serial.print("Right: ");
-      Serial.println(analogRead(rightSens));
       int message = listenForUDPMessage();
       
       if (message != NULL) {
         //Send isNotReady message to server
-        sendUDPMessage(serverIPAddress, serverPort, "0");
+        Serial.println("Message is not null");
+        //sendUDPMessage(serverIPAddress, serverPort, "0");
         runInstruction(message);
+        Serial.println(message);
       }
-      delay(1000);
+      delay(100);
     }
     Serial.println("Full stop");
     isActive = false;
@@ -84,6 +82,8 @@ void runInstruction(int instruction){
     case 2:
       Serial.println("Forward");
       forward();
+      Serial.println("Stop forward");
+      //sendUDPMessage(serverIPAddress, serverPort, "1");
       break;
     case 3:
       Serial.println("Left");
@@ -92,11 +92,10 @@ void runInstruction(int instruction){
     case 4:
       Serial.println("Right");
       rightTurn();
-      break;
   }
 
   //Send isReady message to server
-  sendUDPMessage(serverIPAddress, serverPort, "1");
+  
 }
 
 
@@ -110,37 +109,25 @@ void forward() {
   //While we are not at an intersection...
   while(analogRead(leftSens) > lightLimit || analogRead(rightSens) > lightLimit){
     //Left and right sensors are white
-    if(isStopped){
-      break;
-    }
+    
     
     while (analogRead(leftSens) > lightLimit && analogRead(rightSens) > lightLimit) {
-      Serial.println("Straight");
-      if(!isStopped){
-        thrust(standardSpeedLeft, standardSpeedRight);
-      }else{
-        break;
-      }
+      //Serial.println("Straight");
+      
+      thrust(standardSpeedLeft, standardSpeedRight);
     }
 
     //Left is black -> Correct torwards the left by speeding up on right wheel
     while (analogRead(leftSens) < lightLimit && analogRead(rightSens) > lightLimit ) {
-      Serial.println("Right");
-      if(!isStopped){
-        thrust(correctionSpeed, standardSpeedLeft);
-      }else{
-        break;
-      }
+      //Serial.println("Right");
+      thrust(correctionSpeed, standardSpeedLeft);
     }
 
     //Right is black -> Correct torwards the right by speeding up on left wheel
     while (analogRead(leftSens) > lightLimit && analogRead(rightSens) < lightLimit) {
-      Serial.println("Left");
-      if(!isStopped){
-        thrust(standardSpeedLeft, correctionSpeed);
-      }else{
-        break;
-      }
+      //Serial.println("Left");
+      thrust(standardSpeedLeft, correctionSpeed);
+
     }
   }
 
@@ -148,8 +135,6 @@ void forward() {
 }
 
 void stopEngines() {
-  m.motor(rightMotor,RELEASE,0);
-  m.motor(leftMotor,RELEASE,0);
   m.motor(rightMotor,BACKWARD,0);
   m.motor(leftMotor,BACKWARD,0);
 }
@@ -165,17 +150,17 @@ void thrust(int leftWheel, int rightWheel) {
 
 void leftDirection(){
   m.motor(rightMotor,BACKWARD,standardSpeedRight);
-  m.motor(leftMotor,FORWARD,standardSpeedLeft);
+  m.motor(leftMotor,FORWARD,0);
 }
 
 void rightDirection(){
   m.motor(leftMotor,BACKWARD,standardSpeedLeft);
-  m.motor(rightMotor,FORWARD,standardSpeedRight);
+  m.motor(rightMotor,FORWARD,0);
 }
 
 void leftTurn() {
   //Turn left while turnSensor is white
-  while(analogRead(turnSens) < lightLimit){
+  while(analogRead(turnSens) > lightLimit){
 
     if(!isStopped){
       leftDirection(); 
@@ -184,7 +169,7 @@ void leftTurn() {
     }
   }
   //Keep turning while black
-  while(analogRead(turnSens) > lightLimit){
+  while(analogRead(turnSens) < lightLimit){
 
     if(!isStopped){
       leftDirection();
@@ -201,7 +186,7 @@ void leftTurn() {
 void rightTurn() {
 
   //Turn right while turnSensor is white
-  while(analogRead(turnSens) < lightLimit){
+  while(analogRead(turnSens) > lightLimit){
 
     if(!isStopped){
       rightDirection();
@@ -210,7 +195,7 @@ void rightTurn() {
     }
   }
   //Keep turning while black
-  while(analogRead(turnSens) > lightLimit){
+  while(analogRead(turnSens) < lightLimit){
     delay(100);
 
     if(!isStopped){
@@ -220,7 +205,7 @@ void rightTurn() {
     }
   }
   //Keep turning while sensor is, again, white
-  while(analogRead(turnSens) < lightLimit){
+  while(analogRead(turnSens) > lightLimit){
 
     if(isStopped){
       rightDirection();
@@ -241,7 +226,7 @@ void uTurnDirection(){
 void uTurn() {
 
   //Turn left while white
-  while(analogRead(turnSens) < lightLimit){
+  while(analogRead(turnSens) > lightLimit){
     if(!isStopped){
       uTurnDirection();
     }else{
@@ -249,7 +234,7 @@ void uTurn() {
     }
   }
   //Keep turning while black
-  while(analogRead(turnSens) > lightLimit){
+  while(analogRead(turnSens) < lightLimit){
     if(!isStopped){
       uTurnDirection();
     }else{
@@ -257,7 +242,7 @@ void uTurn() {
     }
   }
   //Keep keep turning while white
-  while(analogRead(turnSens) < lightLimit){
+  while(analogRead(turnSens) > lightLimit){
     if(!isStopped){
       uTurnDirection();
     }else{
@@ -265,7 +250,7 @@ void uTurn() {
     }
   }
   //Keep turning while black
-  while(analogRead(turnSens) > lightLimit){
+  while(analogRead(turnSens) < lightLimit){
     if(!isStopped){
       uTurnDirection();
     }else{
