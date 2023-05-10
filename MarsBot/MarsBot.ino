@@ -17,13 +17,13 @@ boolean isActive = true;
 boolean isPaused = false;
 boolean isStopped = false;
 
-int standardSpeedRight = 150;
-int standardSpeedLeft = 150;
-int turningSpeed = 150;
+int standardSpeedRight = 190;
+int standardSpeedLeft = 190;
+int turningSpeed = 190;
 int correctionSpeed = 0;
 
 //Change to positive value when using line sensors
-int lightLimit = -700;
+int lightLimit = 250;
 
 boolean yellowOn = false;
 
@@ -58,6 +58,10 @@ void loop() {
 
 void activeState() {
   while (isActive) {
+      Serial.print("Left: ");
+      Serial.println(analogRead(leftSens));
+      Serial.print("Right: ");
+      Serial.println(analogRead(rightSens));
       int message = listenForUDPMessage();
       
       if (message != NULL) {
@@ -65,7 +69,7 @@ void activeState() {
         sendUDPMessage(serverIPAddress, serverPort, "0");
         runInstruction(message);
       }
-      delay(100);
+      delay(1000);
     }
     Serial.println("Full stop");
     isActive = false;
@@ -98,18 +102,19 @@ void runInstruction(int instruction){
 
 
 void forward() {
-  while(analogRead(leftSens) > lightLimit && analogRead(rightSens) > lightLimit){
+  while(analogRead(leftSens) < lightLimit && analogRead(rightSens) < lightLimit){
     thrust(standardSpeedLeft, standardSpeedRight);
+    
   }
   
   //While we are not at an intersection...
-  while(analogRead(leftSens) < lightLimit || analogRead(rightSens) < lightLimit){
+  while(analogRead(leftSens) > lightLimit || analogRead(rightSens) > lightLimit){
     //Left and right sensors are white
     if(isStopped){
       break;
     }
     
-    while (analogRead(leftSens) < lightLimit && analogRead(rightSens) < lightLimit) {
+    while (analogRead(leftSens) > lightLimit && analogRead(rightSens) > lightLimit) {
       Serial.println("Straight");
       if(!isStopped){
         thrust(standardSpeedLeft, standardSpeedRight);
@@ -119,7 +124,7 @@ void forward() {
     }
 
     //Left is black -> Correct torwards the left by speeding up on right wheel
-    while (analogRead(leftSens) > lightLimit && analogRead(rightSens) < lightLimit ) {
+    while (analogRead(leftSens) < lightLimit && analogRead(rightSens) > lightLimit ) {
       Serial.println("Right");
       if(!isStopped){
         thrust(correctionSpeed, standardSpeedLeft);
@@ -129,7 +134,7 @@ void forward() {
     }
 
     //Right is black -> Correct torwards the right by speeding up on left wheel
-    while (analogRead(leftSens) < lightLimit && analogRead(rightSens) > lightLimit) {
+    while (analogRead(leftSens) > lightLimit && analogRead(rightSens) < lightLimit) {
       Serial.println("Left");
       if(!isStopped){
         thrust(standardSpeedLeft, correctionSpeed);
