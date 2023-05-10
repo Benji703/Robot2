@@ -20,7 +20,7 @@ char pass[] = "vffj8352";
 int localPort = 3002;                               
 
 //IP and port for the server
-IPAddress serverIPAddress(192, 168, 242, 83);
+IPAddress serverIPAddress(192, 168, 242, 34);
 int serverPort = 3001;       
 
 //setup: runs only once

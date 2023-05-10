@@ -3,10 +3,8 @@
 
 //IR Sensors
 int leftSens = A0;
-int turnSens = A2;
 int rightSens = A1;
-
-
+int turnSens = A2;
 
 
 //Car controls
@@ -72,7 +70,6 @@ void activeState() {
     Serial.println("Full stop");
     isActive = false;
 }
-
 
 void runInstruction(int instruction){
   switch (instruction) {
@@ -148,27 +145,27 @@ void forward() {
 void stopEngines() {
   m.motor(rightMotor,RELEASE,0);
   m.motor(leftMotor,RELEASE,0);
-  m.motor(rightMotor,FORWARD,0);
-  m.motor(leftMotor,FORWARD,0);
+  m.motor(rightMotor,BACKWARD,0);
+  m.motor(leftMotor,BACKWARD,0);
 }
 
 void thrust(int leftWheel, int rightWheel) {
 
   //Set the wheels direction -> Forward
   //Set the speed of both wheels corresponding to the two arguments
-  m.motor(rightMotor,FORWARD,rightWheel);
-  m.motor(leftMotor,FORWARD,leftWheel);
+  m.motor(rightMotor,BACKWARD,rightWheel);
+  m.motor(leftMotor,BACKWARD,leftWheel);
   
 }
 
 void leftDirection(){
-  m.motor(rightMotor,FORWARD,standardSpeedRight);
-  m.motor(leftMotor,BACKWARD,standardSpeedLeft);
+  m.motor(rightMotor,BACKWARD,standardSpeedRight);
+  m.motor(leftMotor,FORWARD,standardSpeedLeft);
 }
 
 void rightDirection(){
-  m.motor(leftMotor,FORWARD,standardSpeedLeft);
-  m.motor(rightMotor,BACKWARD,standardSpeedRight);
+  m.motor(leftMotor,BACKWARD,standardSpeedLeft);
+  m.motor(rightMotor,FORWARD,standardSpeedRight);
 }
 
 void leftTurn() {
@@ -192,8 +189,8 @@ void leftTurn() {
   }
   //When turnSensor is white again, stop
   m.motor(rightMotor,RELEASE,0);
-  m.motor(rightMotor,FORWARD,0);
-  m.motor(leftMotor,FORWARD,0);
+  m.motor(rightMotor,BACKWARD,0);
+  m.motor(leftMotor,BACKWARD,0);
 }
 
 void rightTurn() {
@@ -232,8 +229,8 @@ void rightTurn() {
 
 void uTurnDirection(){
 
-  m.motor(rightMotor,FORWARD,standardSpeedRight);
-  m.motor(leftMotor,BACKWARD,standardSpeedLeft);
+  m.motor(rightMotor,BACKWARD,standardSpeedRight);
+  m.motor(leftMotor,FORWARD,standardSpeedLeft);
 }
 
 void uTurn() {
