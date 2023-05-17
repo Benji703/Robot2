@@ -20,7 +20,7 @@ char pass[] = "vffj8352";
 int localPort = 3002;                               
 
 //IP and port for the server
-IPAddress serverIPAddress(192, 168, 242, 34);
+IPAddress serverIPAddress(192, 168, 212, 34);
 int serverPort = 3001;       
 
 //setup: runs only once
@@ -55,11 +55,11 @@ void setupWifi() {
 
 //listens for incoming UDP messages
 int listenForUDPMessage() {
-  
+  Serial.println("Listen for message...");
   //on package received
   int packetSize = Udp.parsePacket();
   if (packetSize) {
-    
+    Serial.println("Message received");
     //buffer for incoming packages
     char packetBuffer[256]; 
   

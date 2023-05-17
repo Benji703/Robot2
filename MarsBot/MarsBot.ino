@@ -40,8 +40,8 @@ void setup() {
   pinMode(rightSens, INPUT);
   pinMode(turnSens, INPUT);
 
-  m.motor(rightMotor,RELEASE,0);  
-  m.motor(leftMotor,RELEASE,0);  
+  m.motor(rightMotor,BACKWARD,0);  
+  m.motor(leftMotor,BACKWARD,0);  
 }
 
 void loop() {
@@ -67,7 +67,8 @@ void activeState() {
         runInstruction(message);
         Serial.println(message);
       }
-      delay(100);
+      Serial.println("No message received");
+      delay(1000);
     }
     Serial.println("Full stop");
     isActive = false;
@@ -83,7 +84,7 @@ void runInstruction(int instruction){
       Serial.println("Forward");
       forward();
       Serial.println("Stop forward");
-      //sendUDPMessage(serverIPAddress, serverPort, "1");
+      
       break;
     case 3:
       Serial.println("Left");
@@ -95,7 +96,7 @@ void runInstruction(int instruction){
   }
 
   //Send isReady message to server
-  
+  sendUDPMessage(serverIPAddress, serverPort, "1");
 }
 
 
@@ -161,57 +162,30 @@ void rightDirection(){
 void leftTurn() {
   //Turn left while turnSensor is white
   while(analogRead(turnSens) > lightLimit){
-
-    if(!isStopped){
-      leftDirection(); 
-    }else{
-      break;
-    }
+    leftDirection(); 
   }
   //Keep turning while black
   while(analogRead(turnSens) < lightLimit){
-
-    if(!isStopped){
-      leftDirection();
-    }else{
-      break;
-    }
+    leftDirection();
   }
   //When turnSensor is white again, stop
-  m.motor(rightMotor,RELEASE,0);
-  m.motor(rightMotor,BACKWARD,0);
-  m.motor(leftMotor,BACKWARD,0);
+  stopEngines();
 }
 
 void rightTurn() {
 
   //Turn right while turnSensor is white
   while(analogRead(turnSens) > lightLimit){
-
-    if(!isStopped){
-      rightDirection();
-    }else{
-      break;
-    }
+    rightDirection();
   }
   //Keep turning while black
   while(analogRead(turnSens) < lightLimit){
     delay(100);
-
-    if(!isStopped){
-      rightDirection();
-    }else{
-      break;
-    }
+    rightDirection();
   }
   //Keep turning while sensor is, again, white
   while(analogRead(turnSens) > lightLimit){
-
-    if(isStopped){
-      rightDirection();
-    }else{
-      break;
-    }
+    rightDirection();
   }
   //When turnSensor is white again, stop
   stopEngines();
@@ -227,35 +201,19 @@ void uTurn() {
 
   //Turn left while white
   while(analogRead(turnSens) > lightLimit){
-    if(!isStopped){
-      uTurnDirection();
-    }else{
-      break;
-    }
+    uTurnDirection();
   }
   //Keep turning while black
   while(analogRead(turnSens) < lightLimit){
-    if(!isStopped){
-      uTurnDirection();
-    }else{
-      break;
-    }
+    uTurnDirection();
   }
   //Keep keep turning while white
   while(analogRead(turnSens) > lightLimit){
-    if(!isStopped){
-      uTurnDirection();
-    }else{
-      break;
-    }
+    uTurnDirection();
   }
   //Keep turning while black
   while(analogRead(turnSens) < lightLimit){
-    if(!isStopped){
-      uTurnDirection();
-    }else{
-      break;
-    }
+    uTurnDirection();
   }
   //When turnSensor is white again, stop
   stopEngines();
