@@ -20,7 +20,7 @@ boolean isStopped = false;
 int standardSpeedRight = 190;
 int standardSpeedLeft = 190;
 int turningSpeed = 190;
-int correctionSpeed = 0;
+int correctionSpeed = 1;
 
 //Change to positive value when using line sensors
 int lightLimit = 250;
@@ -44,6 +44,8 @@ void setup() {
   m.motor(leftMotor,BACKWARD,0);  
 }
 
+void(* resetFunc) (void) = 0;
+
 void loop() {
   
 
@@ -58,6 +60,7 @@ void loop() {
 
 void activeState() {
   while (isActive) {
+
       int message = listenForUDPMessage();
       
       if (message != NULL) {
@@ -67,8 +70,7 @@ void activeState() {
         runInstruction(message);
         Serial.println(message);
       }
-      Serial.println("No message received");
-      delay(1000);
+      delay(100 );
     }
     Serial.println("Full stop");
     isActive = false;
@@ -83,8 +85,7 @@ void runInstruction(int instruction){
     case 2:
       Serial.println("Forward");
       forward();
-      Serial.println("Stop forward");
-      
+      //Serial.println("Stop forward");
       break;
     case 3:
       Serial.println("Left");
@@ -95,8 +96,9 @@ void runInstruction(int instruction){
       rightTurn();
   }
 
-  //Send isReady message to server
-  sendUDPMessage(serverIPAddress, serverPort, "1");
+  resetFunc();
+  //delay(100);
+  //sendUDPMessage(serverIPAddress, serverPort, "0");
 }
 
 
@@ -146,6 +148,15 @@ void thrust(int leftWheel, int rightWheel) {
   //Set the speed of both wheels corresponding to the two arguments
   m.motor(rightMotor,BACKWARD,rightWheel);
   m.motor(leftMotor,BACKWARD,leftWheel);
+  
+}
+
+void thrustNew(int unused1, int unused2) {
+
+  //Set the wheels direction -> Forward
+  //Set the speed of both wheels corresponding to the two arguments
+  m.motor(rightMotor,BACKWARD,standardSpeedRight);
+  m.motor(leftMotor,BACKWARD,standardSpeedLeft);
   
 }
 

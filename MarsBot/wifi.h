@@ -55,11 +55,9 @@ void setupWifi() {
 
 //listens for incoming UDP messages
 int listenForUDPMessage() {
-  Serial.println("Listen for message...");
   //on package received
   int packetSize = Udp.parsePacket();
   if (packetSize) {
-    Serial.println("Message received");
     //buffer for incoming packages
     char packetBuffer[256]; 
   
