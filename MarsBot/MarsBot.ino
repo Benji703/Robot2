@@ -6,6 +6,16 @@ int leftSens = A0;
 int rightSens = A1;
 int turnSens = A2;
 
+// Project states
+int state = 0;
+
+const int M_WAITING_FOR_INPUT = 1;
+
+const int M_FORWARD = 10;
+const int M_LEFT = 11;
+const int M_RIGHT = 12;
+const int M_UTURN = 13;
+
 
 //Car controls
 MotorDriver m;
@@ -25,10 +35,10 @@ int correctionSpeed = 1;
 //Change to positive value when using line sensors
 int lightLimit = 250;
 
-boolean yellowOn = false;
+int r_var = 0;
 
 void setup() {
-  
+
   //enables serial
   Serial.begin(9600); 
   setupWifi();
@@ -42,13 +52,46 @@ void setup() {
 
   m.motor(rightMotor,BACKWARD,0);  
   m.motor(leftMotor,BACKWARD,0);  
+
+  state = 0;
 }
 
 void(* resetFunc) (void) = 0;
 
 void loop() {
-  
+  r_var = (r_var + 1) % 42;
+  switch (state) {
+    case 0:
+      //Send isReady message to server
+      sendUDPMessage(serverIPAddress, serverPort, "1");
+      state = M_WAITING_FOR_INPUT;
+      break;
 
+    case M_WAITING_FOR_INPUT:
+      waitForInput();
+      break;
+
+    case M_FORWARD:
+      thrust(standardSpeedLeft, standardSpeedRight);
+      break;
+      
+    case M_LEFT:
+      break;
+
+      
+    case M_RIGHT:
+      break;
+
+      
+    case M_UTURN:
+      break;
+
+    default:
+      return;
+
+  }
+
+/*
   if (isActive) {
     //Send isReady message to server
     //sendUDPMessage(serverIPAddress, serverPort, "1");
@@ -56,6 +99,23 @@ void loop() {
   } else {
     stopEngines();
   }  
+  */
+}
+
+void waitForInput() {
+  int message = listenForUDPMessage();
+      
+  if (message == NULL) {
+    Serial.print("No message");
+    Serial.println(r_var);
+    delay(100);
+    return;
+  }
+
+  Serial.print("Received message ");
+  Serial.println(message);
+
+  runInstruction(message);
 }
 
 void activeState() {
@@ -80,23 +140,23 @@ void runInstruction(int instruction){
   switch (instruction) {
     case 1:
       Serial.println("U-Turn");
-      uTurn();
+      //uTurn();
       break;
     case 2:
       Serial.println("Forward");
-      forward();
+      //forward();
       //Serial.println("Stop forward");
       break;
     case 3:
       Serial.println("Left");
-      leftTurn();
+      //leftTurn();
       break;
     case 4:
       Serial.println("Right");
-      rightTurn();
+      //rightTurn();
   }
 
-  resetFunc();
+  //resetFunc();
   //delay(100);
   //sendUDPMessage(serverIPAddress, serverPort, "0");
 }
@@ -239,12 +299,4 @@ void printSensor(){
   Serial.print("Turn:");
   Serial.println(analogRead(turnSens));
   delay(2000);
-}
-
-void customDelay(unsigned long delayTime) {
-
-  unsigned long delayStart = millis();
-  while (millis() < (delayStart + delayTime)) {
-    //Do checks while delay...
-    }
 }

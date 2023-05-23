@@ -1,4 +1,3 @@
-
 #ifndef _WIFI_H
 #define _WIFI_H
 
@@ -13,8 +12,8 @@ int status = WL_IDLE_STATUS;
 WiFiUDP Udp;
 
 //your network name (SSID) and password (WPA)
-char ssid[] = "BimseNet";            
-char pass[] = "vffj8352"; 
+char ssid[] = "The Lanisters send their regards";            
+char pass[] = "11992288"; 
 
 //local port to listen on
 int localPort = 3002;                               
