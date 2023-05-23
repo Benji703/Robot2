@@ -108,7 +108,7 @@ void waitForInput() {
   if (message == NULL) {
     Serial.print("No message");
     Serial.println(r_var);
-    delay(100);
+    delay(1000);
     return;
   }
 
