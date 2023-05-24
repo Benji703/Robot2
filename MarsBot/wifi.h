@@ -19,32 +19,8 @@ char pass[] = "11992288";
 int localPort = 3002;                               
 
 //IP and port for the server
-IPAddress serverIPAddress(192, 168, 212, 34);
+IPAddress serverIPAddress(172, 20, 10, 2);
 int serverPort = 3001;       
-
-void waitForConnection() {
-  int tries = 0;
-    
-  while (status != WL_CONNECTED) {
-    if (tries > 0 && tries % 10 == 0) {
-      Serial.println("");
-      Serial.print("Attempting to connect to SSID: ");
-      Serial.println(ssid);
-
-      if (tries == 0) {
-        status = WiFi.begin(ssid, pass);
-      }
-    }
-
-    Serial.print(".");
-    delay(1000);
-    tries++;
-  }
-  
-  Serial.println("");
-  Serial.print("Connected to WiFi ");
-  Serial.println(ssid);
-}
 
 //setup: runs only once
 void setupWifi() {
@@ -57,11 +33,24 @@ void setupWifi() {
     while (true);
   }
 
-  waitForConnection();
+  //attempt to connect to WiFi network
+  while (status != WL_CONNECTED) {
+
+    //connect to WPA/WPA2 network
+    Serial.print("Attempting to connect to SSID: ");
+    Serial.println(ssid);
+    status = WiFi.begin(ssid, pass);
+
+    //wait 10 seconds for connection
+    delay(10000);
+  }
+  
+  Serial.println("Connected to WiFi");
   
   //if you get a connection, report back via serial:
   Udp.begin(localPort);
 }
+
 
 //listens for incoming UDP messages
 int listenForUDPMessage() {

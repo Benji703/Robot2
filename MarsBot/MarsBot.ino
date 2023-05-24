@@ -6,6 +6,10 @@ int leftSens = A0;
 int rightSens = A1;
 int turnSens = A2;
 
+const int LEFT = 1;
+const int RIGHT = 2;
+const int TURN = 3;
+
 // Project states
 int state = 0;
 
@@ -15,6 +19,19 @@ const int M_FORWARD = 10;
 const int M_LEFT = 11;
 const int M_RIGHT = 12;
 const int M_UTURN = 13;
+
+
+int state_step = 0;
+const int F_LOOK_FOR_WHITE = 10;
+const int F_NORMAL_DRIVE = 11;
+
+const int L_ONE = 20;
+const int L_TWO = 21;
+const int L_THREE = 22;
+
+const int R_ONE = 30;
+const int R_TWO = 31;
+const int R_THREE = 32;
 
 
 //Car controls
@@ -41,6 +58,7 @@ void setup() {
 
   //enables serial
   Serial.begin(9600); 
+  printState();
   setupWifi();
 
   //Notify server that device is online
@@ -60,6 +78,14 @@ void(* resetFunc) (void) = 0;
 
 void loop() {
   r_var = (r_var + 1) % 42;
+  
+  
+  printState();
+
+    if (WiFi.status() != WL_CONNECTED) {
+      status = WiFi.begin(ssid, pass);
+    }
+
   switch (state) {
     case 0:
       //Send isReady message to server
@@ -72,7 +98,7 @@ void loop() {
       break;
 
     case M_FORWARD:
-      thrust(standardSpeedLeft, standardSpeedRight);
+      forwardNew();
       break;
       
     case M_LEFT:
@@ -80,6 +106,7 @@ void loop() {
 
       
     case M_RIGHT:
+    rightTurnNew();
       break;
 
       
@@ -90,16 +117,16 @@ void loop() {
       return;
 
   }
+  sendUDPMessage(serverIPAddress, serverPort, "0");
+}
 
-/*
-  if (isActive) {
-    //Send isReady message to server
-    //sendUDPMessage(serverIPAddress, serverPort, "1");
-    activeState();
-  } else {
-    stopEngines();
-  }  
-  */
+void printState() {
+  Serial.print("State: ");
+  Serial.print(state);
+  Serial.print(".");
+  Serial.println(state_step);
+  Serial.print("WiFi: ");
+  Serial.println(WiFi.status());
 }
 
 void waitForInput() {
@@ -144,6 +171,8 @@ void runInstruction(int instruction){
       break;
     case 2:
       Serial.println("Forward");
+      state_step = F_LOOK_FOR_WHITE;
+      state = M_FORWARD;
       //forward();
       //Serial.println("Stop forward");
       break;
@@ -153,6 +182,8 @@ void runInstruction(int instruction){
       break;
     case 4:
       Serial.println("Right");
+      state_step = R_ONE;
+      state = M_RIGHT;
       //rightTurn();
   }
 
@@ -163,38 +194,65 @@ void runInstruction(int instruction){
 
 
 
-void forward() {
-  while(analogRead(leftSens) < lightLimit && analogRead(rightSens) < lightLimit){
-    thrust(standardSpeedLeft, standardSpeedRight);
-    
+
+bool isBothBlack() {
+  return isBlack(LEFT) && isBlack(RIGHT);
+}
+
+bool isBlack(int sensor) {
+  switch (sensor) {
+    case LEFT:
+      return analogRead(leftSens) < lightLimit;
+    case RIGHT:
+      return analogRead(rightSens) < lightLimit;
+    case TURN: 
+      return analogRead(turnSens) < lightLimit;
   }
-  
-  //While we are not at an intersection...
-  while(analogRead(leftSens) > lightLimit || analogRead(rightSens) > lightLimit){
-    //Left and right sensors are white
-    
-    
-    while (analogRead(leftSens) > lightLimit && analogRead(rightSens) > lightLimit) {
-      //Serial.println("Straight");
-      
+  return false;
+}
+
+
+
+void forwardNew() {
+  // Check the forward driving state
+  switch (state_step) {
+
+    // Initialy, both sensors are on black, as they stop here on an intersection
+    // We should therefore move forward untill at least one of them are on white
+    case F_LOOK_FOR_WHITE:
+      if (!isBothBlack()) {
+        state_step = F_NORMAL_DRIVE;
+        return;
+      }
       thrust(standardSpeedLeft, standardSpeedRight);
-    }
+      break;
+    
+    // Once we initially have passed both black, we start driving normally
+    // If one sensor hit black, we correct the motors
+    // If both hits black, we hit a new intersection
+    case F_NORMAL_DRIVE: 
+      // Check if both sensors are on black, meaning a intersection was reached
+      if (isBothBlack()) {
+        state_step = 0;
+        state = M_WAITING_FOR_INPUT;
+        //stopEngines();
+        return;
+      }
 
-    //Left is black -> Correct torwards the left by speeding up on right wheel
-    while (analogRead(leftSens) < lightLimit && analogRead(rightSens) > lightLimit ) {
-      //Serial.println("Right");
-      thrust(correctionSpeed, standardSpeedLeft);
-    }
+      // Check if one of them is on the black line, and therefore should turn a bit
+      if (isBlack(LEFT)) {
+        thrust(correctionSpeed, standardSpeedLeft);
+        return;
+      } else if (isBlack(RIGHT)) {
+        thrust(standardSpeedLeft, correctionSpeed);
+        return;
+      }
 
-    //Right is black -> Correct torwards the right by speeding up on left wheel
-    while (analogRead(leftSens) > lightLimit && analogRead(rightSens) < lightLimit) {
-      //Serial.println("Left");
-      thrust(standardSpeedLeft, correctionSpeed);
-
-    }
+      // Normal driving, full thrust on both motors
+      thrust(standardSpeedLeft, standardSpeedRight);
+      break;
   }
 
-  stopEngines();
 }
 
 void stopEngines() {
@@ -208,15 +266,11 @@ void thrust(int leftWheel, int rightWheel) {
   //Set the speed of both wheels corresponding to the two arguments
   m.motor(rightMotor,BACKWARD,rightWheel);
   m.motor(leftMotor,BACKWARD,leftWheel);
-  
-}
 
-void thrustNew(int unused1, int unused2) {
-
-  //Set the wheels direction -> Forward
-  //Set the speed of both wheels corresponding to the two arguments
-  m.motor(rightMotor,BACKWARD,standardSpeedRight);
-  m.motor(leftMotor,BACKWARD,standardSpeedLeft);
+  Serial.print("Forward: ");
+  Serial.print(leftWheel);
+  Serial.print(" | ");
+  Serial.println(rightWheel);
   
 }
 
@@ -241,6 +295,36 @@ void leftTurn() {
   }
   //When turnSensor is white again, stop
   stopEngines();
+}
+
+void rightTurnNew() {
+  switch (state_step) {
+    // STEP 1: Sensor is white, turn until sensor hits black
+    case R_ONE:
+      if (isBlack(TURN)) {
+        state_step = R_TWO;
+      }
+      break;
+      
+    // STEP 2: Sensor is black, turn until white is hit again
+    case R_TWO:
+      if (!isBlack(TURN)) {
+        state_step = R_THREE;
+      }
+      break;
+
+    // STEP 3: Sensor is white, turn until black is hit once more
+    case R_THREE:
+      if (isBlack(TURN)) {
+        state_step = 0;
+        state = M_WAITING_FOR_INPUT;
+        stopEngines();
+        return;
+      }
+      break;
+  }
+
+  thrust(standardSpeedLeft, 0);
 }
 
 void rightTurn() {
