@@ -10,10 +10,10 @@
 	<!--Current LED and Potentiometer values, and set new LED value-->
 	<p>
 		Current direction (<output name="" type="text" id="CurrentLEDValueField" value"readonly"></output>), set new direction:
-		<button onclick="SendDirValue(this.value)" value="2">Forward</button>
-		<button onclick="SendDirValue(this.value)" value="3">Left</button>
-		<button onclick="SendDirValue(this.value)" value="4">Right</button>
-		<button onclick="SendDirValue(this.value)" value="1">U-turn</button>
+		<button class="dirButtons" onclick="SendDirValue(this.value)" value="2">Forward</button>
+		<button class="dirButtons" onclick="SendDirValue(this.value)" value="3">Left</button>
+		<button class="dirButtons" onclick="SendDirValue(this.value)" value="4">Right</button>
+		<button class="dirButtons" onclick="SendDirValue(this.value)" value="1">U-turn</button>
 	</p>
 
 	<p>
@@ -52,6 +52,15 @@
     socket.on("CurrentPotentiometerValue", function (data) {
         console.log("Current Potentiometer value received from server: " + data);
         document.getElementById("CurrentPotentiometerValueField").value = data;
+    });
+
+	socket.on("CurrentReadyValue", function (data) {
+        console.log("Current readiness value received from server: " + data);
+		if (data == 1) {
+			document.getElementsByClassName("dirButtons").disabled = false; 
+		} else {
+			document.getElementsByClassName("dirButtons").disabled = true;
+		}
     });
 
 

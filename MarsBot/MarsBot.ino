@@ -1,34 +1,29 @@
 #include "wifi.h"
 #include <MotorDriver.h>
 
-//Ultrasonic sensor
-int trigPin = A1;            //the used trig pin
-int echoPin = A5;            //the used echo pin
-int distance;               //to store the value
-
 //IR Sensors
 int leftSens = A0;
-int turnSens = A2;
 int rightSens = A1;
+int turnSens = A2;
 
-
-//Instructions
-int maxInstructions = 25;
-int instructions[25] = {2,4,2,3,2,3,2,2,2,3,2,2,1,2,2,4,2,2,2,4,2,4,2,3,2};
 
 //Car controls
 MotorDriver m;
+
+int rightMotor = 3;
+int leftMotor = 4;
 
 boolean isActive = true;
 boolean isPaused = false;
 boolean isStopped = false;
 
-int standardSpeedRight = 150;
-int standardSpeedLeft = 150;
-int turningSpeed = 150;
-int correctionSpeed = 0;
+int standardSpeedRight = 190;
+int standardSpeedLeft = 190;
+int turningSpeed = 190;
+int correctionSpeed = 1;
 
-int lightLimit = -700;
+//Change to positive value when using line sensors
+int lightLimit = 250;
 
 boolean yellowOn = false;
 
@@ -41,45 +36,22 @@ void setup() {
   //Notify server that device is online
   sendUDPMessage(serverIPAddress, serverPort, "0");
 
-  
-  //pinMode(trigPin, OUTPUT); //sets pin as OUTPUT
-  //pinMode(echoPin, INPUT);  //sets pin as INPUT
-
   pinMode(leftSens, INPUT);
   pinMode(rightSens, INPUT);
   pinMode(turnSens, INPUT);
 
-  /* For Multiplexer
-  pinMode(a, OUTPUT);
-  pinMode(b, OUTPUT);
-  pinMode(c, OUTPUT);
-  pinMode(com, INPUT_PULLUP);
-  */
-  
-  //Set pins to output so you can control the shift register
-  /*
-  pinMode(latchPin, OUTPUT);
-  pinMode(clockPin, OUTPUT);
-  pinMode(dataPin, OUTPUT);
-  pinMode(clearPin, OUTPUT);
-
-  digitalWrite(clearPin, HIGH);
-  digitalWrite(latchPin, LOW);
-  digitalWrite(clockPin, LOW);
-  digitalWrite(dataPin, LOW);
-
-  clearRegister();
-  */
-
-  m.motor(1,RELEASE,0);  
-  m.motor(2,RELEASE,0);  
-        
+  m.motor(rightMotor,BACKWARD,0);  
+  m.motor(leftMotor,BACKWARD,0);  
 }
+
+void(* resetFunc) (void) = 0;
 
 void loop() {
   
 
   if (isActive) {
+    //Send isReady message to server
+    //sendUDPMessage(serverIPAddress, serverPort, "1");
     activeState();
   } else {
     stopEngines();
@@ -88,17 +60,21 @@ void loop() {
 
 void activeState() {
   while (isActive) {
+
       int message = listenForUDPMessage();
       
       if (message != NULL) {
+        //Send isNotReady message to server
+        Serial.println("Message is not null");
+        //sendUDPMessage(serverIPAddress, serverPort, "0");
         runInstruction(message);
+        Serial.println(message);
       }
-      delay(100);
+      delay(100 );
     }
     Serial.println("Full stop");
     isActive = false;
 }
-
 
 void runInstruction(int instruction){
   switch (instruction) {
@@ -109,6 +85,7 @@ void runInstruction(int instruction){
     case 2:
       Serial.println("Forward");
       forward();
+      //Serial.println("Stop forward");
       break;
     case 3:
       Serial.println("Left");
@@ -117,63 +94,43 @@ void runInstruction(int instruction){
     case 4:
       Serial.println("Right");
       rightTurn();
-      break;
   }
+
+  resetFunc();
+  //delay(100);
+  //sendUDPMessage(serverIPAddress, serverPort, "0");
 }
 
-//function - returns the distance
-int getDistance() {
-  //sends out a trigger sound
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-
-  //returns the received echo in centimeter
-  return pulseIn(echoPin, HIGH) * 0.034 / 2;
-}
 
 
 void forward() {
-  while(analogRead(leftSens) > lightLimit && analogRead(rightSens) > lightLimit){
+  while(analogRead(leftSens) < lightLimit && analogRead(rightSens) < lightLimit){
     thrust(standardSpeedLeft, standardSpeedRight);
+    
   }
   
   //While we are not at an intersection...
-  while(analogRead(leftSens) < lightLimit || analogRead(rightSens) < lightLimit){
+  while(analogRead(leftSens) > lightLimit || analogRead(rightSens) > lightLimit){
     //Left and right sensors are white
-    if(isStopped){
-      break;
-    }
     
-    while (analogRead(leftSens) < lightLimit && analogRead(rightSens) < lightLimit) {
-      Serial.println("Straight");
-      if(!isStopped){
-        thrust(standardSpeedLeft, standardSpeedRight);
-      }else{
-        break;
-      }
+    
+    while (analogRead(leftSens) > lightLimit && analogRead(rightSens) > lightLimit) {
+      //Serial.println("Straight");
+      
+      thrust(standardSpeedLeft, standardSpeedRight);
     }
 
     //Left is black -> Correct torwards the left by speeding up on right wheel
-    while (analogRead(leftSens) > lightLimit && analogRead(rightSens) < lightLimit ) {
-      Serial.println("Right");
-      if(!isStopped){
-        thrust(correctionSpeed, standardSpeedLeft);
-      }else{
-        break;
-      }
+    while (analogRead(leftSens) < lightLimit && analogRead(rightSens) > lightLimit ) {
+      //Serial.println("Right");
+      thrust(correctionSpeed, standardSpeedLeft);
     }
 
     //Right is black -> Correct torwards the right by speeding up on left wheel
-    while (analogRead(leftSens) < lightLimit && analogRead(rightSens) > lightLimit) {
-      Serial.println("Left");
-      if(!isStopped){
-        thrust(standardSpeedLeft, correctionSpeed);
-      }else{
-        break;
-      }
+    while (analogRead(leftSens) > lightLimit && analogRead(rightSens) < lightLimit) {
+      //Serial.println("Left");
+      thrust(standardSpeedLeft, correctionSpeed);
+
     }
   }
 
@@ -181,85 +138,65 @@ void forward() {
 }
 
 void stopEngines() {
-  m.motor(1,RELEASE,0);
-  m.motor(2,RELEASE,0);
-  m.motor(1,FORWARD,0);
-  m.motor(2,FORWARD,0);
+  m.motor(rightMotor,BACKWARD,0);
+  m.motor(leftMotor,BACKWARD,0);
 }
 
 void thrust(int leftWheel, int rightWheel) {
 
   //Set the wheels direction -> Forward
   //Set the speed of both wheels corresponding to the two arguments
-  m.motor(1,FORWARD,rightWheel);
-  m.motor(2,FORWARD,leftWheel);
+  m.motor(rightMotor,BACKWARD,rightWheel);
+  m.motor(leftMotor,BACKWARD,leftWheel);
+  
+}
+
+void thrustNew(int unused1, int unused2) {
+
+  //Set the wheels direction -> Forward
+  //Set the speed of both wheels corresponding to the two arguments
+  m.motor(rightMotor,BACKWARD,standardSpeedRight);
+  m.motor(leftMotor,BACKWARD,standardSpeedLeft);
   
 }
 
 void leftDirection(){
-  m.motor(1,FORWARD,standardSpeedRight);
-  m.motor(2,BACKWARD,standardSpeedLeft);
+  m.motor(rightMotor,BACKWARD,standardSpeedRight);
+  m.motor(leftMotor,FORWARD,0);
 }
 
 void rightDirection(){
-  m.motor(2,FORWARD,standardSpeedLeft);
-  m.motor(1,BACKWARD,standardSpeedRight);
+  m.motor(leftMotor,BACKWARD,standardSpeedLeft);
+  m.motor(rightMotor,FORWARD,0);
 }
 
 void leftTurn() {
   //Turn left while turnSensor is white
-  while(analogRead(turnSens) < lightLimit){
-
-    if(!isStopped){
-      leftDirection(); 
-    }else{
-      break;
-    }
+  while(analogRead(turnSens) > lightLimit){
+    leftDirection(); 
   }
   //Keep turning while black
-  while(analogRead(turnSens) > lightLimit){
-
-    if(!isStopped){
-      leftDirection();
-    }else{
-      break;
-    }
+  while(analogRead(turnSens) < lightLimit){
+    leftDirection();
   }
   //When turnSensor is white again, stop
-  m.motor(1,RELEASE,0);
-  m.motor(1,FORWARD,0);
-  m.motor(2,FORWARD,0);
+  stopEngines();
 }
 
 void rightTurn() {
 
   //Turn right while turnSensor is white
-  while(analogRead(turnSens) < lightLimit){
-
-    if(!isStopped){
-      rightDirection();
-    }else{
-      break;
-    }
+  while(analogRead(turnSens) > lightLimit){
+    rightDirection();
   }
   //Keep turning while black
-  while(analogRead(turnSens) > lightLimit){
+  while(analogRead(turnSens) < lightLimit){
     delay(100);
-
-    if(!isStopped){
-      rightDirection();
-    }else{
-      break;
-    }
+    rightDirection();
   }
   //Keep turning while sensor is, again, white
-  while(analogRead(turnSens) < lightLimit){
-
-    if(isStopped){
-      rightDirection();
-    }else{
-      break;
-    }
+  while(analogRead(turnSens) > lightLimit){
+    rightDirection();
   }
   //When turnSensor is white again, stop
   stopEngines();
@@ -267,43 +204,27 @@ void rightTurn() {
 
 void uTurnDirection(){
 
-  m.motor(1,FORWARD,standardSpeedRight);
-  m.motor(2,BACKWARD,standardSpeedLeft);
+  m.motor(rightMotor,BACKWARD,standardSpeedRight);
+  m.motor(leftMotor,FORWARD,standardSpeedLeft);
 }
 
 void uTurn() {
 
   //Turn left while white
-  while(analogRead(turnSens) < lightLimit){
-    if(!isStopped){
-      uTurnDirection();
-    }else{
-      break;
-    }
+  while(analogRead(turnSens) > lightLimit){
+    uTurnDirection();
   }
   //Keep turning while black
-  while(analogRead(turnSens) > lightLimit){
-    if(!isStopped){
-      uTurnDirection();
-    }else{
-      break;
-    }
+  while(analogRead(turnSens) < lightLimit){
+    uTurnDirection();
   }
   //Keep keep turning while white
-  while(analogRead(turnSens) < lightLimit){
-    if(!isStopped){
-      uTurnDirection();
-    }else{
-      break;
-    }
+  while(analogRead(turnSens) > lightLimit){
+    uTurnDirection();
   }
   //Keep turning while black
-  while(analogRead(turnSens) > lightLimit){
-    if(!isStopped){
-      uTurnDirection();
-    }else{
-      break;
-    }
+  while(analogRead(turnSens) < lightLimit){
+    uTurnDirection();
   }
   //When turnSensor is white again, stop
   stopEngines();
