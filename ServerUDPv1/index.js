@@ -112,9 +112,9 @@ io.on('connection', function(IOsocket) {
     //on "UpdateCurrentInstructionValue"
     IOsocket.on('UpdateCurrentInstructionValue', function (data) {
         console.log("Current LED Value received from client: " + data + "\n");
-        currentLEDValue = data;
+        currentInstructionValue = data;
 
-        io.emit('Current    LEDValue', currentLEDValue);
+        io.emit('CurrentInstructionValue', currentInstructionValue);
 
         //If arduino, send LED value with UDP
         if (arduinoIPAddress != null && arduinoPort != null) {
