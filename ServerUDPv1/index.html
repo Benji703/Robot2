@@ -15,10 +15,6 @@
 		<button class="dirButtons" onclick="SendDirValue(this.value)" value="4">Right</button>
 		<button class="dirButtons" onclick="SendDirValue(this.value)" value="1">U-turn</button>
 	</p>
-
-	<p>
-		Current Potentiometer value (<output name="" type="text" id="CurrentPotentiometerValueField" value"readonly"></output>)
-	</p>
 </body>
 </html>
 
@@ -74,7 +70,7 @@
 
 	function SendDirValue(newDirection) {
 		console.log("New direction value send: " + newDirection);
-        socket.emit("UpdateCurrentLEDValue", newDirection);
+        socket.emit("UpdateCurrentInstructionValue	", newDirection);
 	}
 
 </script>

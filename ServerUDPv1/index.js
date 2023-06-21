@@ -109,8 +109,8 @@ io.on('connection', function(IOsocket) {
         console.log("Client has disconnected" + "\n");
     });
 
-    //on "UpdateCurrentLEDValue"
-    IOsocket.on('UpdateCurrentLEDValue', function (data) {
+    //on "UpdateCurrentInstructionValue"
+    IOsocket.on('UpdateCurrentInstructionValue', function (data) {
         console.log("Current LED Value received from client: " + data + "\n");
         currentLEDValue = data;
 
