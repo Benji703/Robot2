@@ -17,9 +17,9 @@ boolean isActive = true;
 boolean isPaused = false;
 boolean isStopped = false;
 
-int standardSpeedRight = 190;
-int standardSpeedLeft = 190;
-int turningSpeed = 190;
+int standardSpeedRight = 170;
+int standardSpeedLeft = 170;
+int turningSpeed = 170;
 int correctionSpeed = 1;
 
 //Change to positive value when using line sensors
@@ -90,10 +90,12 @@ void runInstruction(int instruction){
     case 3:
       Serial.println("Left");
       leftTurn();
+      forward();
       break;
     case 4:
       Serial.println("Right");
       rightTurn();
+      forward();
   }
 
   resetFunc();
